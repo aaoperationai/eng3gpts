@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AA English — Three Custom GPTs · Training Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#191613;
+    --ink-2:#3a352f;
+    --paper:#efece4;
+    --paper-2:#e6e2d8;
+    --slate:#6f6a61;
+    --red:#ed1c24;
+    --red-deep:#b8141a;
+    --amber:#d6892f;
+    --line:rgba(25,22,19,.16);
+    --line-light:rgba(239,236,228,.18);
+    --shadow:0 1px 0 rgba(25,22,19,.04);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+
+  html,body{height:100%}
+  body{
+    font-family:'Archivo',system-ui,sans-serif;
+    background:var(--ink);
+    color:var(--ink);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- Deck frame ---------- */
+  .deck{
+    position:fixed;inset:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .slide{
+    position:absolute;inset:0;
+    display:none;
+    flex-direction:column;
+    padding:clamp(28px,5vw,76px) clamp(28px,6vw,96px);
+    opacity:0;
+  }
+  .slide.active{display:flex;opacity:1}
+  .slide.light{background:var(--paper);color:var(--ink)}
+  .slide.dark{background:var(--ink);color:var(--paper)}
+
+  /* paper grain on light slides */
+  .slide.light::before{
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+    background-image:
+      repeating-linear-gradient(0deg,rgba(25,22,19,.025) 0 1px,transparent 1px 3px);
+    opacity:.5;mix-blend-mode:multiply;
+  }
+
+  /* ---------- Supporting image layer (faded background) ---------- */
+  .slide .bg-img{
+    position:absolute;inset:0;z-index:0;pointer-events:none;
+    background-repeat:no-repeat;
+    background-position:right center;
+    background-size:contain;
+    opacity:0;                      /* hidden until the image actually loads */
+    transition:opacity .8s ease;
+  }
+  .slide.img-ready .bg-img{opacity:.16}
+  .slide.dark.img-ready .bg-img{opacity:.20}
+  /* keep text crisply above the artwork */
+  .slide > .slug,
+  .slide > .body-wrap,
+  .slide > .title-grid,
+  .slide > .stamp,
+  .slide > .kicker,
+  .slide > h1,.slide > h2,
+  .slide > .lead,
+  .slide > .tools,
+  .slide > .twogrid{position:relative;z-index:2}
+  /* readability scrim so text never fights the art */
+  .slide.light.img-ready::after{
+    content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:linear-gradient(90deg,var(--paper) 38%,rgba(239,236,228,.55) 70%,rgba(239,236,228,.25) 100%);
+  }
+  .slide.dark.img-ready::after{
+    content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:linear-gradient(90deg,var(--ink) 38%,rgba(25,22,19,.5) 72%,rgba(25,22,19,.2) 100%);
+  }
+
+  /* entry motion */
+  .slide.active .reveal{animation:rise .62s cubic-bezier(.22,.61,.36,1) both}
+  .slide.active .reveal:nth-child(1){animation-delay:.04s}
+  .slide.active .reveal:nth-child(2){animation-delay:.12s}
+  .slide.active .reveal:nth-child(3){animation-delay:.20s}
+  .slide.active .reveal:nth-child(4){animation-delay:.28s}
+  .slide.active .reveal:nth-child(5){animation-delay:.36s}
+  .slide.active .reveal:nth-child(6){animation-delay:.44s}
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+  /* ---------- Wire slug header ---------- */
+  .slug{
+    display:flex;align-items:center;justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:clamp(10px,1.05vw,13px);
+    letter-spacing:.14em;text-transform:uppercase;
+    padding-bottom:14px;margin-bottom:auto;
+    border-bottom:1px solid var(--line);
+  }
+  .dark .slug{border-bottom-color:var(--line-light)}
+  .slug .left{display:flex;align-items:center;gap:14px}
+  .slug .dot{width:9px;height:9px;background:var(--red);border-radius:50%;display:inline-block;
+    box-shadow:0 0 0 4px rgba(237,28,36,.16)}
+  .slug .right{color:var(--slate);font-weight:500}
+  .dark .slug .right{color:#a39d92}
+
+  /* ---------- Shared type ---------- */
+  .kicker{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:clamp(11px,1.15vw,14px);
+    letter-spacing:.22em;text-transform:uppercase;
+    color:var(--red);font-weight:600;
+    display:flex;align-items:center;gap:12px;
+  }
+  .kicker::before{content:"";width:clamp(26px,3vw,46px);height:2px;background:var(--red)}
+
+  h1{
+    font-weight:900;line-height:.92;letter-spacing:-.02em;
+    font-size:clamp(40px,7.4vw,108px);
+  }
+  h2{
+    font-weight:800;line-height:.98;letter-spacing:-.015em;
+    font-size:clamp(30px,4.6vw,62px);
+  }
+  .lead{
+    font-size:clamp(17px,1.9vw,25px);
+    line-height:1.45;max-width:62ch;color:var(--ink-2);font-weight:400;
+  }
+  .dark .lead{color:#cfc9bd}
+  .em{color:var(--red);font-weight:700}
+  .dark .em{color:#ff5a60}
+
+  .body-wrap{
+    margin-top:auto;padding-top:clamp(20px,3vh,40px);
+    display:flex;flex-direction:column;gap:clamp(16px,2.4vh,26px);
+  }
+
+  /* ---------- DRAFT stamp signature ---------- */
+  .stamp{
+    border:3px solid var(--red);
+    color:var(--red);
+    padding:8px 16px 9px;
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    line-height:1.15;text-align:center;
+    transform:rotate(-7deg);
+    border-radius:4px;
+    box-shadow:inset 0 0 0 2px rgba(237,28,36,.18);
+    opacity:.9;
+  }
+  .stamp .big{font-size:clamp(15px,1.8vw,22px);display:block}
+  .stamp .small{font-size:clamp(8px,.85vw,10.5px);letter-spacing:.18em;opacity:.85}
+  .stamp.corner{position:absolute;top:clamp(96px,15vh,150px);right:clamp(28px,6vw,96px);z-index:3}
+
+  /* ---------- Title slide ---------- */
+  .title-grid{display:flex;flex-direction:column;height:100%}
+  .title-top{margin-top:auto}
+  .title-meta{
+    display:flex;flex-wrap:wrap;gap:clamp(20px,4vw,64px);
+    margin-top:clamp(24px,4vh,46px);padding-top:clamp(20px,3vh,34px);
+    border-top:1px solid var(--line-light);
+    font-family:'IBM Plex Mono',monospace;font-size:clamp(11px,1.1vw,14px);
+  }
+  .title-meta b{display:block;color:var(--red);letter-spacing:.16em;text-transform:uppercase;font-size:.82em;margin-bottom:6px}
+  .title-meta span{color:#cfc9bd}
+  .title-stamp{position:absolute;top:clamp(60px,14vh,150px);right:clamp(40px,8vw,140px);
+    animation:stampin .7s cubic-bezier(.18,.9,.32,1.2) both;animation-delay:.5s}
+  @keyframes stampin{0%{opacity:0;transform:rotate(-7deg) scale(1.7)}60%{opacity:.9}100%{opacity:.9;transform:rotate(-7deg) scale(1)}}
+
+  /* ---------- Section divider ---------- */
+  .divider .partnum{
+    font-family:'IBM Plex Mono',monospace;font-weight:700;
+    font-size:clamp(54px,12vw,170px);line-height:.8;color:var(--red);
+    letter-spacing:-.03em;
+  }
+  .divider .partline{
+    display:flex;align-items:baseline;gap:clamp(14px,2vw,28px);flex-wrap:wrap;margin-top:6px;
+  }
+
+  /* ---------- Rule slides ---------- */
+  .rule-head{display:flex;align-items:flex-start;gap:clamp(18px,2.4vw,34px)}
+  .rule-no{
+    font-family:'IBM Plex Mono',monospace;font-weight:700;
+    font-size:clamp(30px,3.6vw,52px);color:var(--red);line-height:1;flex:none;
+    padding-top:.1em;
+  }
+  .pill{
+    display:inline-block;font-family:'IBM Plex Mono',monospace;
+    font-size:clamp(10px,1vw,12.5px);letter-spacing:.1em;text-transform:uppercase;
+    background:rgba(237,28,36,.1);color:var(--red-deep);
+    border:1px solid rgba(237,28,36,.35);
+    padding:4px 10px;border-radius:30px;font-weight:600;
+  }
+  .dark .pill{background:rgba(237,28,36,.16);color:#ff7a7f;border-color:rgba(237,28,36,.45)}
+
+  .note{
+    border-left:3px solid var(--amber);
+    background:rgba(214,137,47,.09);
+    padding:14px 18px;border-radius:0 8px 8px 0;
+    font-size:clamp(14px,1.45vw,18px);line-height:1.5;color:var(--ink-2);max-width:70ch;
+  }
+  .dark .note{color:#e0dccf;background:rgba(214,137,47,.13)}
+  .note b{color:var(--amber)}
+
+  /* ---------- Three-tool comparison ---------- */
+  .tools{
+    display:grid;grid-template-columns:repeat(3,1fr);
+    gap:clamp(14px,1.6vw,24px);margin-top:auto;
+  }
+  .tool{
+    border:1px solid var(--line);border-top:4px solid var(--red);
+    background:var(--paper-2);
+    border-radius:10px;padding:clamp(16px,1.8vw,26px);
+    display:flex;flex-direction:column;gap:12px;min-height:0;
+  }
+  .tool .ico{width:clamp(34px,3.6vw,48px);height:clamp(34px,3.6vw,48px)}
+  .tool h3{
+    font-weight:800;font-size:clamp(18px,2vw,27px);letter-spacing:.01em;
+    display:flex;align-items:center;gap:10px;
+  }
+  .tool .tag{
+    font-family:'IBM Plex Mono',monospace;font-size:clamp(10px,1vw,12px);
+    letter-spacing:.1em;color:var(--slate);text-transform:uppercase;
+  }
+  .tool p{font-size:clamp(13px,1.35vw,16.5px);line-height:1.42;color:var(--ink-2)}
+  .tool .scope{
+    margin-top:auto;font-family:'IBM Plex Mono',monospace;
+    font-size:clamp(10px,1vw,12.5px);letter-spacing:.04em;
+    padding:8px 11px;border-radius:6px;background:var(--ink);color:var(--paper);
+    display:flex;justify-content:space-between;
+  }
+  .tool .scope b{color:#ff7a7f;font-weight:600}
+
+  /* ---------- Two-up grid for combined points ---------- */
+  .twogrid{
+    display:grid;grid-template-columns:1fr 1fr;gap:clamp(18px,2.4vw,40px);
+    margin-top:auto;padding-top:clamp(16px,2vh,28px);
+  }
+  .cell{display:flex;flex-direction:column;gap:10px}
+  .cell .h{display:flex;align-items:baseline;gap:12px}
+  .cell .n{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--red);
+    font-size:clamp(15px,1.5vw,20px)}
+  .cell h4{font-weight:700;font-size:clamp(16px,1.7vw,22px);letter-spacing:-.01em}
+  .cell p{font-size:clamp(13px,1.35vw,16.5px);line-height:1.45;color:var(--ink-2)}
+  .dark .cell p{color:#cfc9bd}
+
+  /* ---------- Cycle (errors) ---------- */
+  .cycle{display:flex;align-items:center;gap:clamp(8px,1.2vw,18px);flex-wrap:wrap;margin-top:6px}
+  .cycle .step{
+    font-family:'IBM Plex Mono',monospace;font-weight:600;
+    font-size:clamp(12px,1.3vw,16px);
+    border:1px solid var(--line);border-radius:30px;padding:9px 16px;background:var(--paper-2);
+  }
+  .dark .cycle .step{background:rgba(239,236,228,.07);border-color:var(--line-light)}
+  .cycle .arrow{color:var(--red);font-weight:700;font-size:clamp(14px,1.5vw,20px)}
+
+  .doc-row{display:flex;gap:clamp(10px,1.4vw,20px);flex-wrap:wrap;margin-top:4px}
+  .doc-chip{
+    flex:1 1 200px;border:1px dashed var(--line);border-radius:8px;
+    padding:13px 15px;background:var(--paper-2);
+  }
+  .dark .doc-chip{background:rgba(239,236,228,.06);border-color:var(--line-light)}
+  .doc-chip .lbl{font-family:'IBM Plex Mono',monospace;font-size:clamp(10px,1vw,12px);
+    letter-spacing:.1em;text-transform:uppercase;color:var(--red);font-weight:600;margin-bottom:6px}
+  .doc-chip .txt{font-size:clamp(13px,1.3vw,15.5px);color:var(--ink-2);line-height:1.4}
+  .dark .doc-chip .txt{color:#cfc9bd}
+
+  /* ---------- Closing ---------- */
+  .close-3{display:flex;gap:clamp(16px,2.6vw,52px);flex-wrap:wrap;margin-top:clamp(20px,3vh,40px)}
+  .close-3 .seq{flex:1 1 150px}
+  .close-3 .seq .t{font-family:'IBM Plex Mono',monospace;color:var(--red);font-weight:700;
+    font-size:clamp(13px,1.3vw,16px);letter-spacing:.08em;margin-bottom:8px;text-transform:uppercase}
+  .close-3 .seq .v{font-weight:800;font-size:clamp(22px,2.6vw,38px);line-height:1}
+  .close-3 .seq .d{color:#cfc9bd;font-size:clamp(12px,1.2vw,15px);margin-top:6px}
+
+  .mantra{
+    font-family:'IBM Plex Mono',monospace;font-weight:600;
+    font-size:clamp(13px,1.5vw,19px);letter-spacing:.02em;
+    color:var(--paper);display:flex;flex-direction:column;gap:10px;
+    margin-top:clamp(20px,3vh,38px);padding-top:clamp(18px,2.5vh,30px);
+    border-top:1px solid var(--line-light);
+  }
+  .mantra span{display:flex;gap:14px;align-items:center}
+  .mantra .b{color:var(--red);font-size:1.3em;line-height:0}
+
+  /* ---------- Nav / chrome ---------- */
+  .progress{position:fixed;top:0;left:0;height:3px;background:var(--red);z-index:40;
+    transition:width .5s cubic-bezier(.4,0,.2,1);box-shadow:0 0 10px rgba(237,28,36,.5)}
+  .nav{
+    position:fixed;bottom:clamp(16px,2.4vh,28px);right:clamp(20px,3vw,40px);z-index:40;
+    display:flex;align-items:center;gap:12px;
+  }
+  .nav button{
+    width:clamp(40px,4vw,50px);height:clamp(40px,4vw,50px);
+    border:1px solid var(--line);background:rgba(239,236,228,.92);
+    border-radius:50%;cursor:pointer;color:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .15s ease,background .15s ease;backdrop-filter:blur(6px);
+  }
+  .nav button:hover{background:var(--paper);transform:translateY(-2px)}
+  .nav button:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+  .nav button svg{width:42%;height:42%}
+  .counter{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--paper);
+    background:rgba(25,22,19,.7);padding:8px 13px;border-radius:30px;letter-spacing:.08em;
+    backdrop-filter:blur(6px);min-width:64px;text-align:center;
+  }
+  .dots{position:fixed;bottom:clamp(18px,2.6vh,30px);left:50%;transform:translateX(-50%);z-index:40;
+    display:flex;gap:8px}
+  .dots i{width:8px;height:8px;border-radius:50%;background:rgba(239,236,228,.35);cursor:pointer;
+    transition:all .2s ease}
+  .dots i.on{background:var(--red);width:22px;border-radius:5px}
+
+  .hint{
+    position:fixed;bottom:clamp(16px,2.4vh,28px);left:clamp(20px,3vw,40px);z-index:40;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;
+    color:rgba(239,236,228,.55);text-transform:uppercase;
+  }
+  .light ~ .hint{}
+
+  @media (max-width:760px){
+    .tools{grid-template-columns:1fr;gap:10px}
+    .tool .scope{font-size:10px}
+    .twogrid{grid-template-columns:1fr;gap:18px}
+    .stamp.corner,.title-stamp{display:none}
+    .hint{display:none}
+    .slide{padding:64px 22px 78px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .slide.active .reveal,.title-stamp{animation:none!important}
+    .progress{transition:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck" id="deck">
+
+  <!-- 1 · TITLE -->
+  <section class="slide dark active" data-section="Cover" data-img="cover.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> ISTANBUL (AA) — INTERNAL TRAINING</span>
+      <span class="right">English Service · Digital Desk</span>
+    </div>
+    <div class="title-stamp stamp">
+      <span class="big">DRAFT</span>
+      <span class="small">HUMAN REVIEW<br>REQUIRED</span>
+    </div>
+    <div class="title-grid">
+      <div class="title-top">
+        <div class="kicker reveal">Newsroom AI Tools</div>
+        <h1 class="reveal" style="margin-top:18px">The Three<br>Custom GPTs</h1>
+        <p class="lead reveal" style="margin-top:22px;color:#cfc9bd">
+          How to run <b style="color:#fff">Editor</b>, <b style="color:#fff">URGENT</b> and <b style="color:#fff">BREAKING</b> —
+          and why every line they write is a draft until a human says otherwise.
+        </p>
+        <div class="title-meta reveal">
+          <div><b>Audience</b><span>English news team</span></div>
+          <div><b>Format</b><span>Live session + demo</span></div>
+          <div><b>Takeaway</b><span>Tools speed you up · they don't decide</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · PART 1 DIVIDER -->
+  <section class="slide dark divider" data-section="Part 1" data-img="part1.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> PART ONE</span>
+      <span class="right">The rules that never bend</span>
+    </div>
+    <div class="body-wrap" style="margin-top:auto">
+      <div class="partnum reveal">01</div>
+      <div class="partline reveal">
+        <h2>Non-Negotiable Rules</h2>
+      </div>
+      <p class="lead reveal" style="color:#cfc9bd;margin-top:8px">
+        Two rules sit above everything else in this deck. Break either one and nothing the tool gives you can be trusted.
+      </p>
+    </div>
+  </section>
+
+  <!-- 3 · RULE 1 -->
+  <section class="slide light" data-section="Part 1 · Rules" data-img="rule1-draft.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> NON-NEGOTIABLE</span>
+      <span class="right">The golden rule</span>
+    </div>
+    <div class="stamp corner">
+      <span class="big">DRAFT</span>
+      <span class="small">NOT FOR PUBLICATION</span>
+    </div>
+    <div class="body-wrap">
+      <div class="rule-head reveal">
+        <div class="rule-no">01</div>
+        <div>
+          <span class="pill">Rule 01</span>
+          <h2 style="margin-top:12px">Every output<br>is a draft.</h2>
+        </div>
+      </div>
+      <p class="lead reveal">
+        Everything the three GPTs produce is a <span class="em">preliminary draft</span>.
+        Not a single line goes live on any AA platform without human review.
+      </p>
+      <div class="note reveal">
+        <b>Where it bites hardest:</b> the URGENT and wire desks — speed tempts you to publish straight away. The machine writes; the human decides.
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · RULE 2 -->
+  <section class="slide light" data-section="Part 1 · Rules" data-img="rule2-source.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> NON-NEGOTIABLE</span>
+      <span class="right">The red line</span>
+    </div>
+    <div class="body-wrap">
+      <div class="rule-head reveal">
+        <div class="rule-no">02</div>
+        <div>
+          <span class="pill">Rule 02</span>
+          <h2 style="margin-top:12px">Source fidelity.</h2>
+        </div>
+      </div>
+      <p class="lead reveal">
+        The GPT writes <span class="em">only</span> from the material you give it —
+        no number, name, date, or quote from outside the text.
+      </p>
+      <div class="note reveal">
+        <b>The dangerous failure:</b> the model adds a plausible-sounding figure or background that simply isn't in the source. Check every number and every name against the source before anything else.
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · PART 2 DIVIDER -->
+  <section class="slide dark divider" data-section="Part 2" data-img="part2.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> PART TWO</span>
+      <span class="right">One job, one tool</span>
+    </div>
+    <div class="body-wrap" style="margin-top:auto">
+      <div class="partnum reveal">02</div>
+      <div class="partline reveal"><h2>Choosing the Right Tool</h2></div>
+      <p class="lead reveal" style="color:#cfc9bd;margin-top:8px">
+        Three tools, three different jobs. Open the wrong one and you fight the model instead of using it.
+      </p>
+    </div>
+  </section>
+
+  <!-- 6 · THREE TOOLS -->
+  <section class="slide light" data-section="Part 2 · Tools" data-img="tools.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> THE CORE DIFFERENCE</span>
+      <span class="right">Editor · URGENT · BREAKING</span>
+    </div>
+    <h2 class="reveal" style="margin-top:clamp(16px,3vh,30px)">Same desk. Three jobs.</h2>
+    <div class="tools reveal">
+      <div class="tool">
+        <svg class="ico" viewBox="0 0 48 48" fill="none" stroke="#ed1c24" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M30 6H12a2 2 0 0 0-2 2v32a2 2 0 0 0 2 2h24a2 2 0 0 0 2-2V14z"/>
+          <path d="M30 6v8h8M17 24h14M17 31h14M17 17h6"/>
+        </svg>
+        <h3>Editor</h3>
+        <span class="tag">long-form</span>
+        <p>A full story, an X post, or a grammar / style edit. The workhorse.</p>
+        <div class="scope"><span>Output</span><b>story · post · edit</b></div>
+      </div>
+      <div class="tool">
+        <svg class="ico" viewBox="0 0 48 48" fill="none" stroke="#ed1c24" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M24 6v6M24 36v6M6 24h6M36 24h6M11 11l4 4M33 33l4 4M37 11l-4 4M15 33l-4 4"/>
+          <circle cx="24" cy="24" r="7"/>
+        </svg>
+        <h3>URGENT</h3>
+        <span class="tag">wide net</span>
+        <p>Every development worth a line: statements, reactions, figures, denials, advisories.</p>
+        <div class="scope"><span>Yield</span><b>several lines</b></div>
+      </div>
+      <div class="tool">
+        <svg class="ico" viewBox="0 0 48 48" fill="none" stroke="#ed1c24" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M26 4 8 28h12l-2 16 20-26H26z"/>
+        </svg>
+        <h3>BREAKING</h3>
+        <span class="tag">high, rare bar</span>
+        <p>Only the single biggest first-order event. Usually one line — sometimes none.</p>
+        <div class="scope"><span>Yield</span><b>1 line / none</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · NEVER PROMOTE -->
+  <section class="slide light" data-section="Part 2 · Tools" data-img="rule4-breaking.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> DISCIPLINE</span>
+      <span class="right">Rule 04</span>
+    </div>
+    <div class="body-wrap">
+      <div class="rule-head reveal">
+        <div class="rule-no">04</div>
+        <div>
+          <span class="pill">BREAKING desk</span>
+          <h2 style="margin-top:12px">Never promote an<br>urgent into a breaking.</h2>
+        </div>
+      </div>
+      <p class="lead reveal">
+        If the material is only reactions and detail, the correct BREAKING output is
+        <span style="font-family:'IBM Plex Mono',monospace;background:var(--ink);color:var(--paper);padding:3px 10px;border-radius:5px;font-size:.82em;white-space:nowrap">No breaking line.</span>
+      </p>
+      <div class="note reveal">
+        That is <b>not a failure</b> — it's the model behaving correctly. Reaction and detail belong in URGENT, not BREAKING.
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · PART 3 DIVIDER -->
+  <section class="slide dark divider" data-section="Part 3" data-img="part3.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> PART THREE</span>
+      <span class="right">Day-to-day handling</span>
+    </div>
+    <div class="body-wrap" style="margin-top:auto">
+      <div class="partnum reveal">03</div>
+      <div class="partline reveal"><h2>Running Them Properly</h2></div>
+      <p class="lead reveal" style="color:#cfc9bd;margin-top:8px">
+        Three habits that decide whether the tool helps you or wastes your time.
+      </p>
+    </div>
+  </section>
+
+  <!-- 9 · RUNNING (5,6,7) -->
+  <section class="slide light" data-section="Part 3 · Handling" data-img="running.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> THREE HABITS</span>
+      <span class="right">Rules 05 – 07</span>
+    </div>
+    <h2 class="reveal" style="margin-top:clamp(10px,2vh,22px)">Get the input right.</h2>
+    <div class="twogrid reveal" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="cell">
+        <div class="h"><span class="n">05</span><h4>The three-question gate</h4></div>
+        <p>On the first material, Editor asks: story, X post, or edit? Don't skip it — or name the task up front (<i>"write the story"</i>) to save time.</p>
+      </div>
+      <div class="cell">
+        <div class="h"><span class="n">06</span><h4>Input quality = output quality</h4></div>
+        <p>Incomplete material means incomplete output. When Editor writes <b style="color:var(--red)">"Missing data:"</b>, complete the source — don't ignore it.</p>
+      </div>
+      <div class="cell">
+        <div class="h"><span class="n">07</span><h4>English, any input</h4></div>
+        <p>Paste Arabic or Turkish — the result comes out in English. Translation is smooth, not word-for-word. Always review the translated quotes.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · PART 4 DIVIDER -->
+  <section class="slide dark divider" data-section="Part 4" data-img="part4.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> PART FOUR</span>
+      <span class="right">Your job, not the model's</span>
+    </div>
+    <div class="body-wrap" style="margin-top:auto">
+      <div class="partnum reveal">04</div>
+      <div class="partline reveal"><h2>Editorial Responsibility</h2></div>
+      <p class="lead reveal" style="color:#cfc9bd;margin-top:8px">
+        The GPT speeds the work. It does not replace the editor's judgment.
+      </p>
+    </div>
+  </section>
+
+  <!-- 11 · TERMINOLOGY + TRUST (8,9) -->
+  <section class="slide light" data-section="Part 4 · Responsibility" data-img="responsibility.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> THE EDITOR'S CALL</span>
+      <span class="right">Rules 08 – 09</span>
+    </div>
+    <div class="twogrid reveal">
+      <div class="cell">
+        <div class="h"><span class="n">08</span><h4>Terminology is not optional</h4></div>
+        <p style="margin-bottom:10px">The model is trained on these — your job is to confirm they were actually applied:</p>
+        <div style="display:flex;flex-wrap:wrap;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:clamp(11px,1.15vw,13.5px)">
+          <span class="pill">"Israeli army" ≠ IDF</span>
+          <span class="pill">occupied East Jerusalem</span>
+          <span class="pill">"claimed"</span>
+          <span class="pill">Türkiye ≠ Turkey</span>
+          <span class="pill">ISIS (Daesh)</span>
+        </div>
+      </div>
+      <div class="cell">
+        <div class="h"><span class="n">09</span><h4>Don't trust a quote or number on sight</h4></div>
+        <p>Even with every rule in place, the model can get a figure wrong or attribute a statement to the wrong source. Verifying attribution and numbers is <b style="color:var(--red)">the core of your role</b> — the GPT speeds the work, it doesn't replace judgment.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · PART 5 DIVIDER -->
+  <section class="slide dark divider" data-section="Part 5" data-img="part5.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> PART FIVE</span>
+      <span class="right">How the tools actually improve</span>
+    </div>
+    <div class="body-wrap" style="margin-top:auto">
+      <div class="partnum reveal">05</div>
+      <div class="partline reveal"><h2>Handling Errors &amp;<br>Improving Performance</h2></div>
+    </div>
+  </section>
+
+  <!-- 13 · ERRORS 10,11 -->
+  <section class="slide light" data-section="Part 5 · Errors" data-img="errors-memory.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> THE BIG MISCONCEPTION</span>
+      <span class="right">Rules 10 – 11</span>
+    </div>
+    <div class="body-wrap">
+      <div class="rule-head reveal">
+        <div class="rule-no">10</div>
+        <div>
+          <span class="pill">Memory</span>
+          <h2 style="margin-top:12px">The GPT does not learn<br>from your corrections.</h2>
+        </div>
+      </div>
+      <p class="lead reveal">
+        A fix inside a chat lives in that chat <span class="em">only</span> — close the window and it's gone.
+        No memory between sessions. It does not improve on its own.
+      </p>
+      <div class="reveal">
+        <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:10px">
+          <span class="n" style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--red);font-size:clamp(15px,1.5vw,20px)">11</span>
+          <h4 style="font-weight:700;font-size:clamp(16px,1.7vw,22px)">Improvement happens centrally — document &amp; escalate</h4>
+        </div>
+        <div class="doc-row">
+          <div class="doc-chip"><div class="lbl">1 · Input</div><div class="txt">The exact material you fed it</div></div>
+          <div class="doc-chip"><div class="lbl">2 · Wrong output</div><div class="txt">What the model produced</div></div>
+          <div class="doc-chip"><div class="lbl">3 · Expected</div><div class="txt">What it should have said</div></div>
+        </div>
+        <p style="font-size:clamp(13px,1.3vw,16px);color:var(--slate);margin-top:12px;font-family:'IBM Plex Mono',monospace">↳ then escalate to the team manager. Without the input, nothing can be diagnosed.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · ERRORS 12,13 -->
+  <section class="slide light" data-section="Part 5 · Errors" data-img="errors-cycle.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> THE FIX CYCLE</span>
+      <span class="right">Rules 12 – 13</span>
+    </div>
+    <div class="twogrid reveal" style="grid-template-columns:1fr;gap:clamp(18px,2.6vh,32px)">
+      <div class="cell">
+        <div class="h"><span class="n">12</span><h4>Tell a structural error from a one-off</h4></div>
+        <p>A recurring error of the same type warrants a change to the instructions. A rare one-off usually doesn't — a rule for every isolated case bloats the GPT and confuses it. That distinction is <b style="color:var(--red)">management's call</b>, not the editor's.</p>
+      </div>
+      <div class="cell">
+        <div class="h"><span class="n">13</span><h4>Every change is tested before it's adopted</h4></div>
+        <p style="margin-bottom:14px">Sometimes a rule fixes one error and creates another. Changes go through a cycle:</p>
+        <div class="cycle">
+          <span class="step">Observe</span><span class="arrow">→</span>
+          <span class="step">Write the rule</span><span class="arrow">→</span>
+          <span class="step">Test on examples</span><span class="arrow">→</span>
+          <span class="step" style="border-color:var(--red);color:var(--red)">Adopt</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · CLOSING -->
+  <section class="slide dark" data-section="Demo" data-img="demo.png">
+    <div class="bg-img"></div>
+    <div class="slug reveal">
+      <span class="left"><span class="dot"></span> PRACTICAL SESSION</span>
+      <span class="right">Same material · three tools</span>
+    </div>
+    <div class="body-wrap" style="margin-top:auto">
+      <div class="kicker reveal">Now let's try it</div>
+      <h2 class="reveal" style="margin-top:14px">One Arabic text.<br>Run all three in sequence.</h2>
+      <div class="close-3 reveal">
+        <div class="seq"><div class="t">BREAKING</div><div class="v">1 line</div><div class="d">the single biggest event</div></div>
+        <div class="seq"><div class="t">URGENT</div><div class="v">several</div><div class="d">every development worth a line</div></div>
+        <div class="seq"><div class="t">EDITOR</div><div class="v">full story</div><div class="d">lede, body, attribution</div></div>
+      </div>
+      <div class="mantra reveal">
+        <span><span class="b">●</span> The machine writes — the human decides.</span>
+        <span><span class="b">●</span> Check every number against the source.</span>
+        <span><span class="b">●</span> The GPT does not learn from your corrections.</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- chrome -->
+<div class="dots" id="dots"></div>
+<div class="nav">
+  <span class="counter" id="counter">01 / 15</span>
+  <button id="prev" aria-label="Previous slide">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <button id="next" aria-label="Next slide">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+  </button>
+</div>
+<div class="hint" id="hint">← → or space to advance</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let i = 0;
+
+  const progress = document.getElementById('progress');
+  const counter  = document.getElementById('counter');
+  const dotsWrap = document.getElementById('dots');
+  const hint     = document.getElementById('hint');
+
+  // build dots
+  slides.forEach((_, n) => {
+    const d = document.createElement('i');
+    d.addEventListener('click', () => go(n));
+    dotsWrap.appendChild(d);
+  });
+  const dots = Array.from(dotsWrap.children);
+
+  const pad = n => String(n + 1).padStart(2, '0');
+
+  /* ---- Supporting images: load from img/, try main then master ---- */
+  const REPO = 'aaoperationai/eng3gpts';
+  const BRANCHES = ['main', 'master'];
+  const base = b => `https://raw.githubusercontent.com/${REPO}/${b}/img/`;
+
+  function loadArt(slide){
+    const file = slide.dataset.img;
+    if (!file || slide.dataset.imgState) return;     // none, or already attempted
+    slide.dataset.imgState = 'loading';
+    const layer = slide.querySelector('.bg-img');
+    let bi = 0;
+    const probe = new Image();
+    probe.onload = () => {
+      if (layer) layer.style.backgroundImage = `url("${probe.src}")`;
+      slide.classList.add('img-ready');
+      slide.dataset.imgState = 'ok';
+    };
+    probe.onerror = () => {
+      bi++;
+      if (bi < BRANCHES.length){ probe.src = base(BRANCHES[bi]) + file; }
+      else { slide.dataset.imgState = 'fail'; }        // stays clean SVG-only
+    };
+    probe.src = base(BRANCHES[bi]) + file;
+  }
+  // preload all up front so navigation is instant
+  slides.forEach(loadArt);
+
+  function render(){
+    slides.forEach((s, n) => s.classList.toggle('active', n === i));
+    dots.forEach((d, n) => d.classList.toggle('on', n === i));
+    progress.style.width = ((i + 1) / total * 100) + '%';
+    counter.textContent = pad(i) + ' / ' + pad(total - 1);
+    // tint hint based on slide theme
+    hint.style.color = slides[i].classList.contains('light')
+      ? 'rgba(25,22,19,.45)' : 'rgba(239,236,228,.55)';
+    if (i > 0) hint.style.opacity = '0'; else hint.style.opacity = '1';
+  }
+
+  function go(n){
+    i = Math.max(0, Math.min(total - 1, n));
+    render();
+  }
+  const next = () => go(i + 1);
+  const prev = () => go(i - 1);
+
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('prev').addEventListener('click', prev);
+
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight',' ','PageDown'].includes(e.key)){ e.preventDefault(); next(); }
+    else if (['ArrowLeft','PageUp'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if (e.key === 'Home'){ go(0); }
+    else if (e.key === 'End'){ go(total - 1); }
+  });
+
+  // click left/right thirds of screen (ignore nav/dots)
+  document.getElementById('deck').addEventListener('click', e => {
+    if (e.target.closest('.nav, .dots')) return;
+    (e.clientX > window.innerWidth * 0.62) ? next()
+      : (e.clientX < window.innerWidth * 0.38) ? prev() : null;
+  });
+
+  // touch swipe
+  let sx = 0;
+  addEventListener('touchstart', e => sx = e.touches[0].clientX, {passive:true});
+  addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx;
+    if (Math.abs(dx) > 50) (dx < 0 ? next() : prev());
+  }, {passive:true});
+
+  render();
+</script>
+</body>
+</html>
